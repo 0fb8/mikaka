@@ -1,0 +1,30 @@
+name: build-and-deploy
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Upload artifact
+              uses: actions/upload-pages-artifact@v3
+
+    deploy:
+        needs: build
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.pages_url }}
+        permissions:
+            pages: write
+            id-token: write
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v4
