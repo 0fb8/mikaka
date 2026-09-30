@@ -33,15 +33,42 @@ function convert(value, mapping) {
     .join("");
 }
 
+const COMBINING_MARKS = { "゛": "゙", "゜": "゚" };
+const SPACING_MARKS = { "゙": "゛", "゚": "゜" };
+
+// split voiced kana into base + spacing mark: `が` -> `か゛`.
+// only kana with a rule are split, so katakana and other text stay intact.
+function decomposeMarks(value) {
+  return value
+    .split("")
+    .map((c) => {
+      const d = c.normalize("NFD");
+      if (d.length === 2 && d[1] in SPACING_MARKS && d[0] in jpnToEng) {
+        return d[0] + SPACING_MARKS[d[1]];
+      }
+      return c;
+    })
+    .join("");
+}
+
+// merge base + spacing mark into voiced kana: `か゛` -> `が`.
+// pairs that don't compose (e.g. `あ゛`) are left as they are.
+function composeMarks(value) {
+  return value.replace(/(.)([゛゜])/gu, (pair, base, mark) => {
+    const composed = (base + COMBINING_MARKS[mark]).normalize("NFC");
+    return composed.length === 1 ? composed : pair;
+  });
+}
+
 const engArea = document.getElementById("eng");
 const jpnArea = document.getElementById("jpn");
 
 engArea.addEventListener("input", () => {
-  jpnArea.value = convert(engArea.value, engToJpn);
+  jpnArea.value = composeMarks(convert(engArea.value, engToJpn));
 });
 
 jpnArea.addEventListener("input", () => {
-  engArea.value = convert(jpnArea.value, jpnToEng);
+  engArea.value = convert(decomposeMarks(jpnArea.value), jpnToEng);
 });
 
 loadRules();
